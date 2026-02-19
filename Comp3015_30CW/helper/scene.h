@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <GLFW/glfw3.h>
 
 class Scene
 {
@@ -11,7 +12,7 @@ public:
     int width;
     int height;
 
-	Scene() : m_animate(true), width(800), height(600) { }
+	Scene() : m_animate(true), width(1280), height(720) { }
 	virtual ~Scene() {}
 
 	void setDimensions( int w, int h ) {
@@ -22,7 +23,7 @@ public:
     /**
       Load textures, initialize shaders, etc.
       */
-    virtual void initScene() = 0;
+    virtual void initScene( GLFWwindow* window ) = 0;
 
     /**
       This is called prior to every frame.  Use this

@@ -3,8 +3,8 @@
 #include <GLFW/glfw3.h>
 #include "glutils.h"
 
-#define WIN_WIDTH 800
-#define WIN_HEIGHT 600
+#define WIN_WIDTH 1280
+#define WIN_HEIGHT 720
 
 #include <map>
 #include <string>
@@ -71,7 +71,7 @@ public:
 
     int run(Scene & scene) {
         scene.setDimensions(fbw, fbh);
-        scene.initScene();
+        scene.initScene(window);
         scene.resize(fbw, fbh);
 
         // Enter the main loop

@@ -1,27 +1,39 @@
 #ifndef SCENEBASIC_UNIFORM_H
 #define SCENEBASIC_UNIFORM_H
 
-#include "helper/scene.h"
-
 #include <glad/glad.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include "helper/scene.h"
 #include "helper/glslprogram.h"
+#include "helper/torus.h"
+#include "helper/objmesh.h"
+#include "camera.h"
 
-class SceneBasic_Uniform : public Scene
-{
-private:
-    GLuint vaoHandle;
-    GLSLProgram prog;
-    float angle;
+using namespace std;
+using namespace glm;
 
-    void compile();
 
+class SceneBasic_Uniform : public Scene {
 public:
     SceneBasic_Uniform();
 
-    void initScene();
-    void update( float t );
+    void initScene(GLFWwindow* window);
+    void update(float t);
     void render();
     void resize(int, int);
+
+private:
+    GLSLProgram prog;
+    GLFWwindow* window;
+
+    Torus torus;
+    Camera camera;
+    float deltaTime;
+    float lastFrame;
+
+    void setMatrices();
+    void compile();
 };
 
-#endif // SCENEBASIC_UNIFORM_H
+#endif  // SCENEBASIC_UNIFORM_H
