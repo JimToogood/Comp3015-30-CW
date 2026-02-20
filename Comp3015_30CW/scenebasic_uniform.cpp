@@ -11,7 +11,7 @@ using namespace glm;
 
 SceneBasic_Uniform::SceneBasic_Uniform():
     window(nullptr),
-    torus(0.7f, 0.3f, 30, 30),
+    torus(0.7f, 0.3f, 100, 100),
     camera(1280, 720),
     deltaTime(0.0f),
     lastFrame(0.0f)
@@ -30,10 +30,17 @@ void SceneBasic_Uniform::initScene(GLFWwindow* winIn) {
 
     // Rotate torus
     model = rotate(model, radians(-35.0f), vec3(1.0f, 0.0f, 0.0f));
+    model = rotate(model, radians(15.0f), vec3(0.0f, 1.0f, 0.0f));
 
-    prog.setUniform("LightPosition", view * vec4(5.0f, 5.0f, 2.0f, 1.0f));
-    prog.setUniform("Ld", vec3(1.0f, 1.0f, 1.0f));
-    prog.setUniform("Kd", vec3(0.2f, 0.55f, 0.9f));
+    prog.setUniform("Light.Position", view * vec4(5.0f, 5.0f, 2.0f, 1.0f));
+    prog.setUniform("Light.Ld", vec3(1.0f, 1.0f, 1.0f));
+    prog.setUniform("Light.La", vec3(0.4f, 0.4f, 0.4f));
+    prog.setUniform("Light.Ls", vec3(1.0f, 1.0f, 1.0f));
+
+    prog.setUniform("Material.Shininess", 100.0f);
+    prog.setUniform("Material.Kd", vec3(0.2f, 0.55f, 0.9f));
+    prog.setUniform("Material.Ka", vec3(0.2f, 0.55f, 0.9f));
+    prog.setUniform("Material.Ks", vec3(0.8f, 0.8f, 0.8f));
 }
 
 void SceneBasic_Uniform::compile() {
