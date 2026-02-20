@@ -78,6 +78,7 @@ public:
     }
 
     const mat4 GetView() { return lookAt(position, position + front, up); }
+    const vec3 GetPos() { return position; }
 
 private:
     vec3 position;

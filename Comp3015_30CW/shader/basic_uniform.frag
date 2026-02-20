@@ -22,6 +22,8 @@ uniform struct MaterialData {
     vec3 Ks;        // Specular
 }Material;
 
+uniform vec3 CameraPos;
+
 
 vec3 blinnPhong(int light, vec3 pos, vec3 normal) {
     vec3 ambient = lights[light].La * Material.Ka;
@@ -34,7 +36,7 @@ vec3 blinnPhong(int light, vec3 pos, vec3 normal) {
 
     // Only calculate specular if surface faces light
     if (sDotN > 0.0f) {
-        vec3 viewDir = normalize(-pos);
+        vec3 viewDir = normalize(CameraPos - pos);
         vec3 halfVector = normalize(lightDir + viewDir);
         
         // Blinn-Phong specular calculation

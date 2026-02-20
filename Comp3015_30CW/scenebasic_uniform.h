@@ -7,6 +7,7 @@
 #include "helper/scene.h"
 #include "helper/glslprogram.h"
 #include "helper/torus.h"
+#include "helper/plane.h"
 #include "helper/objmesh.h"
 #include "camera.h"
 
@@ -28,6 +29,7 @@ private:
     GLFWwindow* window;
 
     Torus torus;
+    Plane plane;
     Camera camera;
     float deltaTime;
     float lastFrame;

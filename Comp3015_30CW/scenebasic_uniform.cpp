@@ -12,6 +12,7 @@ using namespace glm;
 SceneBasic_Uniform::SceneBasic_Uniform():
     window(nullptr),
     torus(0.7f, 0.3f, 100, 100),
+    plane(10.0f, 10.0f, 1, 1),
     camera(1280, 720),
     deltaTime(0.0f),
     lastFrame(0.0f)
@@ -24,27 +25,20 @@ void SceneBasic_Uniform::initScene(GLFWwindow* winIn) {
     glEnable(GL_DEPTH_TEST);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);    // Automatically bind cursor to window & hide pointer
 
-    // Define model and projection for torus
-    model = mat4(1.0f);
     projection = mat4(1.0f);
-
     view = camera.GetView();
-
-    // Rotate torus
-    model = rotate(model, radians(-35.0f), vec3(1.0f, 0.0f, 0.0f));
-    model = rotate(model, radians(15.0f), vec3(0.0f, 1.0f, 0.0f));
 
     prog.setUniform("numLights", 3);
 
     // Position
-    prog.setUniform("lights[0].Position", view * vec4(5.0f, 5.0f, 2.0f, 1.0f));
-    prog.setUniform("lights[1].Position", view * vec4(0.0f, 5.0f, 2.0f, 1.0f));
-    prog.setUniform("lights[2].Position", view * vec4(-5.0f, 5.0f, 2.0f, 1.0f));
+    prog.setUniform("lights[0].Position", vec4(5.0f, 5.0f, 2.0f, 1.0f));
+    prog.setUniform("lights[1].Position", vec4(0.0f, 5.0f, 2.0f, 1.0f));
+    prog.setUniform("lights[2].Position", vec4(-5.0f, 5.0f, 2.0f, 1.0f));
 
     // Diffuse (Colour)
-    prog.setUniform("lights[0].Ld", vec3(1.0f, 0.0f, 0.0f));    // RGB (normalised between 0.0f-1.0f)
+    prog.setUniform("lights[0].Ld", vec3(0.8f, 0.0f, 0.0f));    // RGB (normalised between 0.0f-1.0f)
     prog.setUniform("lights[1].Ld", vec3(0.0f, 0.8f, 0.0f));
-    prog.setUniform("lights[2].Ld", vec3(0.0f, 0.0f, 0.6f));
+    prog.setUniform("lights[2].Ld", vec3(0.0f, 0.0f, 0.8f));
 
     // Ambient
     prog.setUniform("lights[0].La", vec3(0.1f, 0.0f, 0.0f));
@@ -55,12 +49,6 @@ void SceneBasic_Uniform::initScene(GLFWwindow* winIn) {
     prog.setUniform("lights[0].Ls", vec3(0.8f));
     prog.setUniform("lights[1].Ls", vec3(0.8f));
     prog.setUniform("lights[2].Ls", vec3(0.8f));
-
-    // Materials
-    prog.setUniform("Material.Shininess", 100.0f);
-    prog.setUniform("Material.Kd", vec3(0.2f, 0.55f, 0.9f));
-    prog.setUniform("Material.Ka", vec3(0.2f, 0.55f, 0.9f));
-    prog.setUniform("Material.Ks", vec3(0.8f));
 }
 
 void SceneBasic_Uniform::compile() {
@@ -80,6 +68,8 @@ void SceneBasic_Uniform::update(float t) {
     deltaTime = t - lastFrame;
     lastFrame = t;
 
+    prog.setUniform("CameraPos", camera.GetPos());
+
     // -=-=- Handle Player Input -=-=-
     // Close window on escape pressed
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
@@ -97,9 +87,37 @@ void SceneBasic_Uniform::render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     view = camera.GetView();
+
+    // -=-=- Torus -=-=-
+    // Materials
+    prog.setUniform("Material.Shininess", 100.0f);
+    prog.setUniform("Material.Kd", vec3(0.5f));
+    prog.setUniform("Material.Ka", vec3(0.5f));
+    prog.setUniform("Material.Ks", vec3(0.8f));
+
+    // Model
+    model = mat4(1.0f);
+    model = rotate(model, radians(-35.0f), vec3(1.0f, 0.0f, 0.0f));
+    model = rotate(model, radians(15.0f), vec3(0.0f, 1.0f, 0.0f));
     
+    // Render
     setMatrices();
     torus.render();
+
+    // -=-=- Plane -=-=-
+    // Materials
+    prog.setUniform("Material.Shininess", 120.0f);
+    prog.setUniform("Material.Kd", vec3(0.4f));
+    prog.setUniform("Material.Ka", vec3(0.3f));
+    prog.setUniform("Material.Ks", vec3(0.1f));
+
+    // Model
+    model = mat4(1.0f);
+    model = translate(model, vec3(0.0f, -1.0f, 0.0f));
+
+    // Render
+    setMatrices();
+    plane.render();
 }
 
 void SceneBasic_Uniform::resize(int w, int h) {
@@ -110,8 +128,7 @@ void SceneBasic_Uniform::resize(int w, int h) {
 }
 
 void SceneBasic_Uniform::setMatrices() {
-    mat4 mv = view * model;
-    prog.setUniform("ModelViewMatrix", mv);
-    prog.setUniform("NormalMatrix", mat3(vec3(mv[0]), vec3(mv[1]), vec3(mv[2])));
-    prog.setUniform("MVP", projection * mv);
+    prog.setUniform("ModelMatrix", model);
+    prog.setUniform("NormalMatrix", mat3(transpose(inverse(model))));
+    prog.setUniform("MVP", projection * view * model);
 }
