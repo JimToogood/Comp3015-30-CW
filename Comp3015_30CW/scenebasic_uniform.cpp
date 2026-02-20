@@ -28,19 +28,39 @@ void SceneBasic_Uniform::initScene(GLFWwindow* winIn) {
     model = mat4(1.0f);
     projection = mat4(1.0f);
 
+    view = camera.GetView();
+
     // Rotate torus
     model = rotate(model, radians(-35.0f), vec3(1.0f, 0.0f, 0.0f));
     model = rotate(model, radians(15.0f), vec3(0.0f, 1.0f, 0.0f));
 
-    prog.setUniform("Light.Position", view * vec4(5.0f, 5.0f, 2.0f, 1.0f));
-    prog.setUniform("Light.Ld", vec3(1.0f, 1.0f, 1.0f));
-    prog.setUniform("Light.La", vec3(0.4f, 0.4f, 0.4f));
-    prog.setUniform("Light.Ls", vec3(1.0f, 1.0f, 1.0f));
+    prog.setUniform("numLights", 3);
 
+    // Position
+    prog.setUniform("lights[0].Position", view * vec4(5.0f, 5.0f, 2.0f, 1.0f));
+    prog.setUniform("lights[1].Position", view * vec4(0.0f, 5.0f, 2.0f, 1.0f));
+    prog.setUniform("lights[2].Position", view * vec4(-5.0f, 5.0f, 2.0f, 1.0f));
+
+    // Diffuse (Colour)
+    prog.setUniform("lights[0].Ld", vec3(1.0f, 0.0f, 0.0f));    // RGB (normalised between 0.0f-1.0f)
+    prog.setUniform("lights[1].Ld", vec3(0.0f, 0.8f, 0.0f));
+    prog.setUniform("lights[2].Ld", vec3(0.0f, 0.0f, 0.6f));
+
+    // Ambient
+    prog.setUniform("lights[0].La", vec3(0.1f, 0.0f, 0.0f));
+    prog.setUniform("lights[1].La", vec3(0.0f, 0.1f, 0.0f));
+    prog.setUniform("lights[2].La", vec3(0.0f, 0.0f, 0.1f));
+
+    // Specular
+    prog.setUniform("lights[0].Ls", vec3(0.8f));
+    prog.setUniform("lights[1].Ls", vec3(0.8f));
+    prog.setUniform("lights[2].Ls", vec3(0.8f));
+
+    // Materials
     prog.setUniform("Material.Shininess", 100.0f);
     prog.setUniform("Material.Kd", vec3(0.2f, 0.55f, 0.9f));
     prog.setUniform("Material.Ka", vec3(0.2f, 0.55f, 0.9f));
-    prog.setUniform("Material.Ks", vec3(0.8f, 0.8f, 0.8f));
+    prog.setUniform("Material.Ks", vec3(0.8f));
 }
 
 void SceneBasic_Uniform::compile() {
