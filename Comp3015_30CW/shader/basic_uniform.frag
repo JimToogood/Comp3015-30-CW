@@ -22,12 +22,22 @@ uniform struct MaterialData {
     vec3 Ks;        // Specular
 }Material;
 
+uniform struct FogData {
+    float Density;
+    vec3 Colour;
+}Fog;
+
 uniform vec3 CameraPos;
 
 
 vec3 blinnPhong(int light, vec3 pos, vec3 normal) {
     vec3 ambient = lights[light].La * Material.Ka;
-    vec3 lightDir = normalize(vec3(lights[light].Position) - pos);
+
+    vec3 lightVector = vec3(lights[light].Position) - pos;
+    vec3 lightDir = normalize(lightVector);
+    float distance = length(lightVector);
+
+    float attenuation = 5.0f / distance;
 
     float sDotN = max(dot(normal, lightDir), 0.0f);
     vec3 diffuse = lights[light].Ld * Material.Kd * sDotN;
@@ -43,19 +53,24 @@ vec3 blinnPhong(int light, vec3 pos, vec3 normal) {
         specular = lights[light].Ls * Material.Ks * pow(max(dot(normal, halfVector), 0.0f), Material.Shininess);
     }
 
-    return (ambient + diffuse + specular);
+    return (ambient + diffuse + specular) * attenuation;
 }
 
 
 void main() {
+    float cameraDistance = length(CameraPos - FragPos);
+    float fogFactor = clamp(exp(-pow(Fog.Density * cameraDistance, 2.0f)), 0.0f, 1.0f);
+
     // Re-normalise interpolated normal
     vec3 norm = normalize(Normal);
     
-    vec3 finalColor = vec3(0.0f);
+    vec3 shadingColour = vec3(0.0f);
 
     for (int i = 0; i < numLights; i++) {
-        finalColor += blinnPhong(i, FragPos, norm);
+        shadingColour += blinnPhong(i, FragPos, norm);
     }
 
-    FragColor = vec4(finalColor, 1.0f);
+    vec3 finalColour = mix(Fog.Colour, shadingColour, fogFactor);
+
+    FragColor = vec4(finalColour, 1.0f);
 }

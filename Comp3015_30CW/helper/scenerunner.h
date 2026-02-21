@@ -58,7 +58,7 @@ public:
         GLUtils::dumpGLInfo();
 
         // Initialization
-        glClearColor(0.5f,0.5f,0.5f,1.0f);
+        glClearColor(0.53f, 0.81f, 0.92f, 1.0f);
 #ifndef __APPLE__
 		if (debug) {
 			glDebugMessageCallback(GLUtils::debugCallback, nullptr);

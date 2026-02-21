@@ -30,11 +30,17 @@ private:
 
     Torus torus;
     Plane plane;
+    unique_ptr<ObjMesh> mesh;
+
+    mat4 torusModel;
+    mat4 planeModel;
+    mat4 meshModel;
+
     Camera camera;
     float deltaTime;
     float lastFrame;
 
-    void setMatrices();
+    void setMatrices(mat4 model);
     void compile();
 };
 
