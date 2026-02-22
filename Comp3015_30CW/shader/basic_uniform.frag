@@ -2,8 +2,8 @@
 
 // Inputs from vert
 in vec3 FragPos;
-in vec3 Normal;
 in vec2 TexCoord;
+in mat3 TBN;
 
 layout (location = 0) out vec4 FragColor;
 
@@ -29,6 +29,7 @@ uniform struct FogData {
 }Fog;
 
 uniform sampler2D DiffuseTex;
+uniform sampler2D NormalTex;
 uniform bool UseTexture;
 uniform vec3 CameraPos;
 
@@ -40,7 +41,13 @@ vec3 blinnPhong(int light, vec3 pos, vec3 normal, vec3 baseColour) {
     vec3 lightDir = normalize(lightVector);
     float distance = length(lightVector);
 
-    float attenuation = 5.0f / distance;
+    float attenuation;
+    if (light == 0) {
+       attenuation = 1.0f;
+    } else {
+       attenuation  = 5.0f / distance;
+    }
+
 
     float sDotN = max(dot(normal, lightDir), 0.0f);
     vec3 diffuse = lights[light].Ld * baseColour * sDotN;
@@ -62,23 +69,27 @@ vec3 blinnPhong(int light, vec3 pos, vec3 normal, vec3 baseColour) {
 
 void main() {
     vec3 baseColour;
+    vec3 normal;
 
     if (UseTexture) {
         baseColour = texture(DiffuseTex, TexCoord).rgb;
+
+        vec3 tangentNormal = texture(NormalTex, TexCoord).rgb;
+        tangentNormal = 2.0f * tangentNormal - 1.0f;
+        normal = normalize(TBN * tangentNormal);
     } else {
         baseColour = Material.Kd;
+
+        normal = normalize(TBN[2]);
     }
 
     float cameraDistance = length(CameraPos - FragPos);
     float fogFactor = clamp(exp(-pow(Fog.Density * cameraDistance, 2.0f)), 0.0f, 1.0f);
-
-    // Re-normalise interpolated normal
-    vec3 norm = normalize(Normal);
     
     vec3 shadingColour = vec3(0.0f);
 
     for (int i = 0; i < numLights; i++) {
-        shadingColour += blinnPhong(i, FragPos, norm, baseColour);
+        shadingColour += blinnPhong(i, FragPos, normal, baseColour);
     }
 
     vec3 finalColour = mix(Fog.Colour, shadingColour, fogFactor);

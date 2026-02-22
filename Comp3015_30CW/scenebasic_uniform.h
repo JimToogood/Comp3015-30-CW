@@ -10,6 +10,7 @@
 #include "helper/plane.h"
 #include "helper/objmesh.h"
 #include "helper/texture.h"
+#include "helper/skybox.h"
 #include "camera.h"
 
 using namespace std;
@@ -27,19 +28,27 @@ public:
 
 private:
     GLSLProgram prog;
+    GLSLProgram skyboxProg;
     GLFWwindow* window;
 
     Torus torus;
     Plane plane;
     unique_ptr<ObjMesh> mesh;
+    SkyBox* skybox;
 
     mat4 torusModel;
     mat4 planeModel;
     mat4 meshModel;
 
+    GLuint skyboxDayTexture;
+    GLuint diffuseTexture;
+    GLuint normalTexture;
+
     Camera camera;
     float deltaTime;
     float lastFrame;
+    float timeOfDay;
+    float dayLength;
 
     void setMatrices(mat4 model);
     void compile();

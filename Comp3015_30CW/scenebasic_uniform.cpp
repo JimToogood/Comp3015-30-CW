@@ -16,11 +16,17 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     torusModel(mat4(1.0f)),
     planeModel(mat4(1.0f)),
     meshModel(mat4(1.0f)),
+    skyboxDayTexture(0),
+    diffuseTexture(0),
+    normalTexture(0),
     camera(1280, 720),
     deltaTime(0.0f),
-    lastFrame(0.0f)
+    lastFrame(0.0f),
+    timeOfDay(20.0f),
+    dayLength(20.0f)    // in seconds
 {
     mesh = ObjMesh::load("media/pig_triangulated.obj", true);
+    skybox = new SkyBox(50.0f);
 }
 
 void SceneBasic_Uniform::initScene(GLFWwindow* winIn) {
@@ -31,57 +37,48 @@ void SceneBasic_Uniform::initScene(GLFWwindow* winIn) {
     glEnable(GL_CULL_FACE);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);    // Automatically bind cursor to window & hide pointer
 
-    GLuint diffuseTexture = Texture::loadTexture("media/grass.jpg");
+    skyboxDayTexture = Texture::loadHdrCubeMap("media/skybox/day_skybox");
+    //skyboxDayTexture = Texture::loadHdrCubeMap("media/pisa-hdr/pisa");
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, diffuseTexture);
+    diffuseTexture = Texture::loadTexture("media/grass.jpg");
+    normalTexture = Texture::loadTexture("media/grass_normal.jpg");
+
+    skyboxProg.use();
+    skyboxProg.setUniform("daySkyboxTex", 0);
+
+    prog.use();
     prog.setUniform("DiffuseTex", 0);
+    prog.setUniform("NormalTex", 1);
 
     // Model transforms 
     torusModel = rotate(torusModel, radians(-35.0f), vec3(1.0f, 0.0f, 0.0f));
     torusModel = rotate(torusModel, radians(15.0f), vec3(0.0f, 1.0f, 0.0f));
-
-    planeModel = translate(planeModel, vec3(0.0f, -1.0f, 0.0f));
+    torusModel = translate(torusModel, vec3(0.0f, 1.1f, 0.0f));
 
     meshModel = rotate(meshModel, radians(90.0f), vec3(0.0f, 1.0f, 0.0f));
     meshModel = translate(meshModel, vec3(2.0f, 0.0f, 2.0f));
+    meshModel = translate(meshModel, vec3(0.0f, 0.5f, 0.0f));
 
     projection = mat4(1.0f);
     view = camera.GetView();
 
+    // lights[0] = sun, lights[1] = moon
     prog.setUniform("numLights", 2);
 
-    // Position
-    prog.setUniform("lights[0].Position", vec4(5.0f, 5.0f, 5.0f, 1.0f));
-    prog.setUniform("lights[1].Position", vec4(-15.0f, 5.0f, 15.0f, 1.0f));
-    //prog.setUniform("lights[2].Position", vec4(-5.0f, 5.0f, 2.0f, 1.0f));
-
-    // Diffuse (Colour)
-    prog.setUniform("lights[0].Ld", vec3(1.0f));
-    prog.setUniform("lights[1].Ld", vec3(1.0f));
-    //prog.setUniform("lights[2].Ld", vec3(0.0f, 0.0f, 0.8f));
-
-    // Ambient
-    prog.setUniform("lights[0].La", vec3(0.3f));
-    prog.setUniform("lights[1].La", vec3(0.3f));
-    //prog.setUniform("lights[2].La", vec3(0.0f, 0.0f, 0.1f));
-
-    // Specular
-    prog.setUniform("lights[0].Ls", vec3(1.0f));
-    prog.setUniform("lights[1].Ls", vec3(1.0f));
-    //prog.setUniform("lights[2].Ls", vec3(0.8f));
-
     // Fog
-    prog.setUniform("Fog.Density", 0.06f);  // 0.08f = dense fog
+    prog.setUniform("Fog.Density", 0.05f);  // 0.08f = dense fog
     prog.setUniform("Fog.Colour", vec3(0.4f));
 }
 
 void SceneBasic_Uniform::compile() {
 	try {
+        skyboxProg.compileShader("shader/skybox.vert");
+        skyboxProg.compileShader("shader/skybox.frag");
+        skyboxProg.link();
+
 		prog.compileShader("shader/basic_uniform.vert");
 		prog.compileShader("shader/basic_uniform.frag");
 		prog.link();
-		prog.use();
 	} catch (GLSLProgramException &e) {
 		cerr << e.what() << endl;
 		exit(EXIT_FAILURE);
@@ -94,6 +91,33 @@ void SceneBasic_Uniform::update(float t) {
     lastFrame = t;
 
     prog.setUniform("CameraPos", camera.GetPos());
+
+    timeOfDay += deltaTime;
+    if (timeOfDay > dayLength) { timeOfDay -= dayLength; }
+
+    float phase = timeOfDay / dayLength;
+    float sunAngle = phase * 2.0f * pi<float>();
+
+    vec3 sunDirection = normalize(vec3(cos(sunAngle), sin(sunAngle), 0.0f));
+    vec3 moonDirection = -sunDirection;
+
+    const float fade = 0.25f;
+
+    float sunIntensity = clamp((sunDirection.y + fade) / (fade * 2.0f), 0.0f, 1.0f);
+    float moonIntensity = clamp((moonDirection.y + fade) / (fade * 2.0f), 0.0f, 1.0f);
+
+    const vec3 sunColour = vec3(1.0f, 0.95f, 0.7f);
+    const vec3 moonColour = vec3(0.25f, 0.25f, 0.4f);
+
+    prog.setUniform("lights[0].Position", vec4((sunDirection * 10.0f), 0.0f));
+    prog.setUniform("lights[0].Ld", sunColour * sunIntensity);
+    prog.setUniform("lights[0].La", (sunColour * 0.2f) * sunIntensity);
+    prog.setUniform("lights[0].Ls", sunColour * sunIntensity);
+
+    prog.setUniform("lights[1].Position", vec4((moonDirection * 7.5f), 0.0f));
+    prog.setUniform("lights[1].Ld", moonColour * moonIntensity);
+    prog.setUniform("lights[1].La", (moonColour * 0.4f) * moonIntensity);
+    prog.setUniform("lights[1].Ls", (moonColour * 0.55f) * moonIntensity);
 
     // -=-=- Handle Player Input -=-=-
     // Close window on escape pressed
@@ -113,11 +137,31 @@ void SceneBasic_Uniform::render() {
 
     view = camera.GetView();
 
+    // -=-=- Skybox -=-=-
+    glDepthFunc(GL_LEQUAL);
+    skyboxProg.use();
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxDayTexture);
+
+    mat4 skyboxMVP = projection * mat4(mat3(view)) * mat4(1.0f);
+    skyboxProg.setUniform("MVP", skyboxMVP);
+
+    skybox->render();
+
     // -=-=- Plane -=-=-
+    glDepthFunc(GL_LESS);
+    prog.use();
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, diffuseTexture);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, normalTexture);
+
     // Materials
     prog.setUniform("UseTexture", true);
     prog.setUniform("Material.Shininess", 120.0f);
-    prog.setUniform("Material.Ka", vec3(0.1f));
+    prog.setUniform("Material.Ka", vec3(0.5f));
     prog.setUniform("Material.Ks", vec3(0.05f));
 
     // Render
@@ -129,7 +173,7 @@ void SceneBasic_Uniform::render() {
     prog.setUniform("UseTexture", false);
     prog.setUniform("Material.Shininess", 90.0f);
     prog.setUniform("Material.Kd", vec3(0.55f, 0.2f, 0.9f));
-    prog.setUniform("Material.Ka", vec3(0.35f, 0.1f, 0.7f));
+    prog.setUniform("Material.Ka", vec3(0.55f, 0.2f, 0.9f));
     prog.setUniform("Material.Ks", vec3(0.9f));
 
     // Render
@@ -140,7 +184,7 @@ void SceneBasic_Uniform::render() {
     // Materials
     prog.setUniform("Material.Shininess", 100.0f);
     prog.setUniform("Material.Kd", vec3(0.9f, 0.55f, 0.2f));
-    prog.setUniform("Material.Ka", vec3(0.7f, 0.35f, 0.1f));
+    prog.setUniform("Material.Ka", vec3(0.9f, 0.55f, 0.2f));
     prog.setUniform("Material.Ks", vec3(0.8f));
 
     // Render

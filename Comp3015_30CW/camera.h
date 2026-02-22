@@ -13,7 +13,7 @@ using namespace glm;
 class Camera {
 public:
     Camera(int windowWidth, int windowHeight) :
-        position(vec3(0.0f, 0.0f, 3.0f)),
+        position(vec3(0.0f, 2.0f, 3.0f)),
         front(vec3(0.0f, 0.0f, -1.0f)),
         up(vec3(0.0f, 1.0f, 0.0f)),
         yaw(-90.0f),
