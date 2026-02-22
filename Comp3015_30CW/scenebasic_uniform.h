@@ -9,6 +9,7 @@
 #include "helper/torus.h"
 #include "helper/plane.h"
 #include "helper/objmesh.h"
+#include "helper/texture.h"
 #include "camera.h"
 
 using namespace std;

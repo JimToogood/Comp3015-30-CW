@@ -31,7 +31,13 @@ void SceneBasic_Uniform::initScene(GLFWwindow* winIn) {
     glEnable(GL_CULL_FACE);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);    // Automatically bind cursor to window & hide pointer
 
-    // Model transforms
+    GLuint diffuseTexture = Texture::loadTexture("media/grass.jpg");
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, diffuseTexture);
+    prog.setUniform("DiffuseTex", 0);
+
+    // Model transforms 
     torusModel = rotate(torusModel, radians(-35.0f), vec3(1.0f, 0.0f, 0.0f));
     torusModel = rotate(torusModel, radians(15.0f), vec3(0.0f, 1.0f, 0.0f));
 
@@ -67,7 +73,7 @@ void SceneBasic_Uniform::initScene(GLFWwindow* winIn) {
 
     // Fog
     prog.setUniform("Fog.Density", 0.06f);  // 0.08f = dense fog
-    prog.setUniform("Fog.Colour", vec3(0.5f));
+    prog.setUniform("Fog.Colour", vec3(0.4f));
 }
 
 void SceneBasic_Uniform::compile() {
@@ -107,22 +113,11 @@ void SceneBasic_Uniform::render() {
 
     view = camera.GetView();
 
-    // -=-=- Torus -=-=-
-    // Materials
-    prog.setUniform("Material.Shininess", 100.0f);
-    prog.setUniform("Material.Kd", vec3(0.9f, 0.55f, 0.2f));
-    prog.setUniform("Material.Ka", vec3(0.7f, 0.35f, 0.1f));
-    prog.setUniform("Material.Ks", vec3(0.8f));
-    
-    // Render
-    setMatrices(torusModel);
-    torus.render();
-
     // -=-=- Plane -=-=-
     // Materials
+    prog.setUniform("UseTexture", true);
     prog.setUniform("Material.Shininess", 120.0f);
-    prog.setUniform("Material.Kd", vec3(0.1f, 0.3f, 0.1f));
-    prog.setUniform("Material.Ka", vec3(0.05f, 0.2f, 0.05f));
+    prog.setUniform("Material.Ka", vec3(0.1f));
     prog.setUniform("Material.Ks", vec3(0.05f));
 
     // Render
@@ -131,7 +126,8 @@ void SceneBasic_Uniform::render() {
 
     // -=-=- Mesh -=-=-
     // Materials
-    prog.setUniform("Material.Shininess", 100.0f);
+    prog.setUniform("UseTexture", false);
+    prog.setUniform("Material.Shininess", 90.0f);
     prog.setUniform("Material.Kd", vec3(0.55f, 0.2f, 0.9f));
     prog.setUniform("Material.Ka", vec3(0.35f, 0.1f, 0.7f));
     prog.setUniform("Material.Ks", vec3(0.9f));
@@ -139,6 +135,17 @@ void SceneBasic_Uniform::render() {
     // Render
     setMatrices(meshModel);
     mesh->render();
+
+    // -=-=- Torus -=-=-
+    // Materials
+    prog.setUniform("Material.Shininess", 100.0f);
+    prog.setUniform("Material.Kd", vec3(0.9f, 0.55f, 0.2f));
+    prog.setUniform("Material.Ka", vec3(0.7f, 0.35f, 0.1f));
+    prog.setUniform("Material.Ks", vec3(0.8f));
+
+    // Render
+    setMatrices(torusModel);
+    torus.render();
 }
 
 void SceneBasic_Uniform::resize(int w, int h) {
