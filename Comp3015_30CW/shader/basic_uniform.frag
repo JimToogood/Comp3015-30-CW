@@ -41,13 +41,8 @@ vec3 blinnPhong(int light, vec3 pos, vec3 normal, vec3 baseColour) {
     vec3 lightDir = normalize(lightVector);
     float distance = length(lightVector);
 
-    float attenuation;
-    if (light == 0) {
-       attenuation = 1.0f;
-    } else {
-       attenuation  = 5.0f / distance;
-    }
-
+    // Lighting affects objects less when they are further away
+    float attenuation  = 7.0f / distance;
 
     float sDotN = max(dot(normal, lightDir), 0.0f);
     vec3 diffuse = lights[light].Ld * baseColour * sDotN;

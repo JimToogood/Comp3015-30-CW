@@ -41,6 +41,7 @@ private:
     mat4 meshModel;
 
     GLuint skyboxDayTexture;
+    GLuint skyboxNightTexture;
     GLuint diffuseTexture;
     GLuint normalTexture;
 

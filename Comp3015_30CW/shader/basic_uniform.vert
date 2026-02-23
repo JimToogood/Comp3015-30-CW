@@ -23,6 +23,7 @@ void main() {
 
     TexCoord = VertexTexCoord;
 
+    // Calculate TBN for normal mapping
     vec3 N = normalize(NormalMatrix * VertexNormal);
     vec3 T = normalize(NormalMatrix * VertexTangent);
     T = normalize(T - dot(T, N) * N);

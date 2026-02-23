@@ -17,13 +17,14 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     planeModel(mat4(1.0f)),
     meshModel(mat4(1.0f)),
     skyboxDayTexture(0),
+    skyboxNightTexture(0),
     diffuseTexture(0),
     normalTexture(0),
     camera(1280, 720),
     deltaTime(0.0f),
     lastFrame(0.0f),
-    timeOfDay(20.0f),
-    dayLength(20.0f)    // in seconds
+    timeOfDay(60.0f),
+    dayLength(60.0f)    // in seconds
 {
     mesh = ObjMesh::load("media/pig_triangulated.obj", true);
     skybox = new SkyBox(50.0f);
@@ -37,14 +38,17 @@ void SceneBasic_Uniform::initScene(GLFWwindow* winIn) {
     glEnable(GL_CULL_FACE);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);    // Automatically bind cursor to window & hide pointer
 
+    // Load textures
     skyboxDayTexture = Texture::loadHdrCubeMap("media/skybox/day_skybox");
-    //skyboxDayTexture = Texture::loadHdrCubeMap("media/pisa-hdr/pisa");
+    skyboxNightTexture = Texture::loadHdrCubeMap("media/skybox/night_skybox");
 
     diffuseTexture = Texture::loadTexture("media/grass.jpg");
     normalTexture = Texture::loadTexture("media/grass_normal.jpg");
 
+    // Assign textures to shaders
     skyboxProg.use();
     skyboxProg.setUniform("daySkyboxTex", 0);
+    skyboxProg.setUniform("nightSkyboxTex", 1);
 
     prog.use();
     prog.setUniform("DiffuseTex", 0);
@@ -64,10 +68,6 @@ void SceneBasic_Uniform::initScene(GLFWwindow* winIn) {
 
     // lights[0] = sun, lights[1] = moon
     prog.setUniform("numLights", 2);
-
-    // Fog
-    prog.setUniform("Fog.Density", 0.05f);  // 0.08f = dense fog
-    prog.setUniform("Fog.Colour", vec3(0.4f));
 }
 
 void SceneBasic_Uniform::compile() {
@@ -98,17 +98,34 @@ void SceneBasic_Uniform::update(float t) {
     float phase = timeOfDay / dayLength;
     float sunAngle = phase * 2.0f * pi<float>();
 
+    // Sun and moon orbit opposite to each other
     vec3 sunDirection = normalize(vec3(cos(sunAngle), sin(sunAngle), 0.0f));
     vec3 moonDirection = -sunDirection;
 
-    const float fade = 0.25f;
+    // Define length of overlap between sun and moon at sunset/sunrise
+    const float fade = 0.35f;
 
     float sunIntensity = clamp((sunDirection.y + fade) / (fade * 2.0f), 0.0f, 1.0f);
     float moonIntensity = clamp((moonDirection.y + fade) / (fade * 2.0f), 0.0f, 1.0f);
 
+    // Lighting colour
     const vec3 sunColour = vec3(1.0f, 0.95f, 0.7f);
-    const vec3 moonColour = vec3(0.25f, 0.25f, 0.4f);
+    const vec3 moonColour = vec3(0.3f, 0.3f, 0.45f);
 
+    // Fog colour
+    const vec3 fogDay = vec3(0.7f, 0.8f, 0.9f);
+    const vec3 fogNight = vec3(0.07f, 0.07f, 0.1f);
+
+    // Pass skybox variables to skybox shader
+    skyboxProg.use();
+    skyboxProg.setUniform("blendFactor", sunIntensity);
+    skyboxProg.setUniform("sunDirection", sunDirection);
+    skyboxProg.setUniform("moonDirection", moonDirection);
+    skyboxProg.setUniform("sunColour", sunColour * sunIntensity);
+    skyboxProg.setUniform("moonColour", moonColour * moonIntensity);
+
+    // Pass lighting and fog variables to default shader
+    prog.use();
     prog.setUniform("lights[0].Position", vec4((sunDirection * 10.0f), 0.0f));
     prog.setUniform("lights[0].Ld", sunColour * sunIntensity);
     prog.setUniform("lights[0].La", (sunColour * 0.2f) * sunIntensity);
@@ -118,6 +135,9 @@ void SceneBasic_Uniform::update(float t) {
     prog.setUniform("lights[1].Ld", moonColour * moonIntensity);
     prog.setUniform("lights[1].La", (moonColour * 0.4f) * moonIntensity);
     prog.setUniform("lights[1].Ls", (moonColour * 0.55f) * moonIntensity);
+
+    prog.setUniform("Fog.Density", mix(0.03f, 0.08f, moonIntensity));
+    prog.setUniform("Fog.Colour", mix(fogDay, fogNight, moonIntensity));
 
     // -=-=- Handle Player Input -=-=-
     // Close window on escape pressed
@@ -143,6 +163,8 @@ void SceneBasic_Uniform::render() {
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxDayTexture);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxNightTexture);
 
     mat4 skyboxMVP = projection * mat4(mat3(view)) * mat4(1.0f);
     skyboxProg.setUniform("MVP", skyboxMVP);

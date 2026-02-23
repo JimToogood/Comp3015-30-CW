@@ -10,3 +10,4 @@ All textures and models used in this project are copyright-free and licensed for
 
 **Texture Assets Used:**  
 day_skybox.hdr - https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky  
+night_skybox.hdr (edited by me) - https://polyhaven.com/a/qwantani_moon_noon_puresky  
