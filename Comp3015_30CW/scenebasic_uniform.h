@@ -22,13 +22,16 @@ public:
     SceneBasic_Uniform();
 
     void initScene(GLFWwindow* window);
+    void initFBO(int windowWidth, int windowHeight);
     void update(float t);
     void render();
+    void renderSceneObjects();
     void resize(int, int);
 
 private:
     GLSLProgram prog;
     GLSLProgram skyboxProg;
+    GLSLProgram FBOProg;
     GLFWwindow* window;
 
     Torus torus;
@@ -44,6 +47,12 @@ private:
     GLuint skyboxNightTexture;
     GLuint diffuseTexture;
     GLuint normalTexture;
+
+    GLuint FBO;
+    GLuint FBOColourTexture;
+    GLuint FBODepthTexture;
+    GLuint screenQuadVAO;
+    GLuint screenQuadVBO;
 
     Camera camera;
     float deltaTime;

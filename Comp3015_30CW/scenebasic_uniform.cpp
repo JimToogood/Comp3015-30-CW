@@ -20,10 +20,15 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     skyboxNightTexture(0),
     diffuseTexture(0),
     normalTexture(0),
+    FBO(0),
+    FBOColourTexture(0),
+    FBODepthTexture(0),
+    screenQuadVAO(0),
+    screenQuadVBO(0),
     camera(1280, 720),
     deltaTime(0.0f),
     lastFrame(0.0f),
-    timeOfDay(60.0f),
+    timeOfDay(0.0f),
     dayLength(60.0f)    // in seconds
 {
     mesh = ObjMesh::load("media/pig_triangulated.obj", true);
@@ -37,6 +42,8 @@ void SceneBasic_Uniform::initScene(GLFWwindow* winIn) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);    // Automatically bind cursor to window & hide pointer
+
+    initFBO(1280, 720);
 
     // Load textures
     skyboxDayTexture = Texture::loadHdrCubeMap("media/skybox/day_skybox");
@@ -70,8 +77,68 @@ void SceneBasic_Uniform::initScene(GLFWwindow* winIn) {
     prog.setUniform("numLights", 2);
 }
 
+void SceneBasic_Uniform::initFBO(int windowWidth, int windowHeight) {
+    // Create framebuffer object (FBO)
+    glGenFramebuffers(1, &FBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+
+    // Colour buffer texture
+    glGenTextures(1, &FBOColourTexture);
+    glBindTexture(GL_TEXTURE_2D, FBOColourTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, windowWidth, windowHeight, 0, GL_RGB, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBOColourTexture, 0);
+
+    // Depth buffer texture
+    glGenTextures(1, &FBODepthTexture);
+    glBindTexture(GL_TEXTURE_2D, FBODepthTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, windowWidth, windowHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, FBODepthTexture, 0);
+
+    // Check FBO initialised correctly
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        cerr << "FBO failed to initialise." << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // Create fullscreen quad
+    float quadVertices[] = {
+        // Position     // UV
+        -1.0f, -1.0f,   0.0f, 0.0f,
+         1.0f, -1.0f,   1.0f, 0.0f,
+        -1.0f,  1.0f,   0.0f, 1.0f,
+         1.0f,  1.0f,   1.0f, 1.0f,
+    };
+
+    glGenVertexArrays(1, &screenQuadVAO);
+    glGenBuffers(1, &screenQuadVBO);
+
+    glBindVertexArray(screenQuadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, screenQuadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(0);
+
+    FBOProg.use();
+    FBOProg.setUniform("sceneTex", 0);
+    FBOProg.setUniform("texelSize", vec2(1.0f / windowWidth, 1.0f / windowHeight));
+}
+
 void SceneBasic_Uniform::compile() {
 	try {
+        FBOProg.compileShader("shader/fbo.vert");
+        FBOProg.compileShader("shader/fbo.frag");
+        FBOProg.link();
+
         skyboxProg.compileShader("shader/skybox.vert");
         skyboxProg.compileShader("shader/skybox.frag");
         skyboxProg.link();
@@ -89,8 +156,6 @@ void SceneBasic_Uniform::update(float t) {
     // Calculate delta time
     deltaTime = t - lastFrame;
     lastFrame = t;
-
-    prog.setUniform("CameraPos", camera.GetPos());
 
     timeOfDay += deltaTime;
     if (timeOfDay > dayLength) { timeOfDay -= dayLength; }
@@ -124,8 +189,10 @@ void SceneBasic_Uniform::update(float t) {
     skyboxProg.setUniform("sunColour", sunColour * sunIntensity);
     skyboxProg.setUniform("moonColour", moonColour * moonIntensity);
 
-    // Pass lighting and fog variables to default shader
     prog.use();
+    prog.setUniform("CameraPos", camera.GetPos());
+
+    // Pass lighting and fog variables to default shader
     prog.setUniform("lights[0].Position", vec4((sunDirection * 10.0f), 0.0f));
     prog.setUniform("lights[0].Ld", sunColour * sunIntensity);
     prog.setUniform("lights[0].La", (sunColour * 0.2f) * sunIntensity);
@@ -138,6 +205,9 @@ void SceneBasic_Uniform::update(float t) {
 
     prog.setUniform("Fog.Density", mix(0.03f, 0.08f, moonIntensity));
     prog.setUniform("Fog.Colour", mix(fogDay, fogNight, moonIntensity));
+
+    FBOProg.use();
+    FBOProg.setUniform("vignetteStrength", mix(-0.7f, 0.1f, moonIntensity));
 
     // -=-=- Handle Player Input -=-=-
     // Close window on escape pressed
@@ -153,8 +223,26 @@ void SceneBasic_Uniform::update(float t) {
 }
 
 void SceneBasic_Uniform::render() {
+    // Render scene into FBO
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    renderSceneObjects();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // Render fullscreen as quad using FBO shaders
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    FBOProg.use();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, FBOColourTexture);
+
+    glBindVertexArray(screenQuadVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}
+
+void SceneBasic_Uniform::renderSceneObjects() {
     view = camera.GetView();
 
     // -=-=- Skybox -=-=-

@@ -14,30 +14,30 @@ class Camera {
 public:
     Camera(int windowWidth, int windowHeight) :
         position(vec3(0.0f, 2.0f, 3.0f)),
-        front(vec3(0.0f, 0.0f, -1.0f)),
         up(vec3(0.0f, 1.0f, 0.0f)),
-        yaw(-90.0f),
+        front(vec3(0.0f, 0.0f, -1.0f)),
         pitch(0.0f),
+        yaw(-90.0f),
         lastXPos(windowWidth / 2.0f),
         lastYPos(windowHeight / 2.0f),
-        mouseFirstEntry(true)
+        isFirstFrame(true)
     {}
 
     void HandleKeyboard(GLFWwindow* window, float deltaTime) {
         const float speed = 3.0f * deltaTime;
 
-        // Horizontal movement controls
+        // Horizontal controls
         vec3 horizontalFront = normalize(vec3(front.x, 0.0f, front.z));
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
             position += speed * horizontalFront;
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            position -= speed * horizontalFront;
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
             position -= normalize(cross(horizontalFront, up)) * speed;
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            position -= speed * horizontalFront;
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
             position += normalize(cross(horizontalFront, up)) * speed;
 
-        // Vertical movement controls
+        // Vertical controls
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
             position += speed * up;
         if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
@@ -45,11 +45,11 @@ public:
     }
 
     void HandleMouse(double xpos, double ypos) {
-        // Initialise last positions
-        if (mouseFirstEntry) {
+        // Initialise last x and y positions
+        if (isFirstFrame) {
             lastXPos = (float)xpos;
             lastYPos = (float)ypos;
-            mouseFirstEntry = false;
+            isFirstFrame = false;
         }
 
         float xOffset = (float)xpos - lastXPos;
@@ -57,7 +57,7 @@ public:
         lastXPos = (float)xpos;
         lastYPos = (float)ypos;
 
-        // Define mouse sensitivity
+        // Mouse sensitivity
         const float sensitivity = 0.04f;
         xOffset *= sensitivity;
         yOffset *= sensitivity;
@@ -65,32 +65,30 @@ public:
         yaw += xOffset;
         pitch += yOffset;
 
-        // Clamp pitch to avoid turning up & down beyond 90 degrees
+        // Clamp pitch to avoid turning up & down too far
         pitch = clamp(pitch, -89.0f, 89.0f);
 
         // Calculate camera direction
-        vec3 direction = vec3(
+        front = normalize(vec3(
             cos(radians(yaw)) * cos(radians(pitch)),
             sin(radians(pitch)),
             sin(radians(yaw)) * cos(radians(pitch))
-        );
-        front = normalize(direction);
+        ));
     }
 
-    const mat4 GetView() { return lookAt(position, position + front, up); }
-    const vec3 GetPos() { return position; }
+    vec3 GetPos() { return position; }
+    mat4 GetView() { return lookAt(position, position + front, up); }
 
 private:
     vec3 position;
     vec3 front;
     vec3 up;
-
     float yaw;
     float pitch;
 
     float lastXPos;
     float lastYPos;
-    bool mouseFirstEntry;
+    bool isFirstFrame;
 };
 
 #endif  // CAMERA_H
