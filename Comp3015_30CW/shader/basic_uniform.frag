@@ -18,6 +18,7 @@ uniform struct LightData {
 
 uniform struct MaterialData {
     float Shininess;
+    float Alpha;    // If object uses an image texture, the image's alpha value is prioritised (unless it is 1.0f)
     vec3 Kd;        // Diffuse
     vec3 Ka;        // Ambient
     vec3 Ks;        // Specular
@@ -30,12 +31,14 @@ uniform struct FogData {
 
 uniform sampler2D DiffuseTex;
 uniform sampler2D NormalTex;
+uniform float UVScale;
 uniform bool UseTexture;
+uniform bool UseNormal;
 uniform vec3 CameraPos;
 
 
 vec3 blinnPhong(int light, vec3 pos, vec3 normal, vec3 baseColour) {
-    vec3 ambient = lights[light].La * Material.Ka;
+    vec3 ambient = lights[light].La * baseColour;
 
     vec3 lightVector = vec3(lights[light].Position) - pos;
     vec3 lightDir = normalize(lightVector);
@@ -65,18 +68,38 @@ vec3 blinnPhong(int light, vec3 pos, vec3 normal, vec3 baseColour) {
 void main() {
     vec3 baseColour;
     vec3 normal;
+    float alpha;
 
+    vec2 tiledUV = TexCoord * UVScale;
+
+    // Check for diffuse texture
     if (UseTexture) {
-        baseColour = texture(DiffuseTex, TexCoord).rgb;
+        vec4 texSample = texture(DiffuseTex, tiledUV);
+        // Assign texture colours to base colour
+        baseColour = texSample.rgb;
 
-        vec3 tangentNormal = texture(NormalTex, TexCoord).rgb;
+        // If image has transparency, set object's transparency to that value, otherwise use material alpha
+        if (texSample.a < 1.0f) {
+            alpha = texSample.a;
+        } else {
+            alpha =  Material.Alpha;
+        }
+    } else {
+        baseColour = Material.Kd;
+        alpha = Material.Alpha;
+    }
+
+    // Check for normal texture
+    if (UseNormal) {
+        vec3 tangentNormal = texture(NormalTex, tiledUV).rgb;
         tangentNormal = 2.0f * tangentNormal - 1.0f;
         normal = normalize(TBN * tangentNormal);
     } else {
-        baseColour = Material.Kd;
-
         normal = normalize(TBN[2]);
     }
+
+    // Remove zero alpha pixels to allow tree branches to be seen behind each other
+    if (alpha == 0) { discard; }
 
     float cameraDistance = length(CameraPos - FragPos);
     float fogFactor = clamp(exp(-pow(Fog.Density * cameraDistance, 2.0f)), 0.0f, 1.0f);
@@ -89,5 +112,5 @@ void main() {
 
     vec3 finalColour = mix(Fog.Colour, shadingColour, fogFactor);
 
-    FragColor = vec4(finalColour, 1.0f);
+    FragColor = vec4(finalColour, alpha);
 }

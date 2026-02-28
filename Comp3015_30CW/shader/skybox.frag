@@ -23,7 +23,7 @@ void main() {
 
     // Calculate sun and moon visuals on skybox
     vec3 dir = normalize(TexCoords);
-    skyColour += sunColour * pow(max(dot(dir, sunDirection), 0.0f), 80.0f);
+    skyColour += sunColour * pow(max(dot(dir, sunDirection), 0.0f), 100.0f);
     skyColour += moonColour * pow(max(dot(dir, moonDirection), 0.0f), 250.0f);
 
     // Gamma correction

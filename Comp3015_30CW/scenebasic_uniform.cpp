@@ -11,15 +11,30 @@ using namespace glm;
 
 SceneBasic_Uniform::SceneBasic_Uniform() :
     window(nullptr),
-    torus(0.7f, 0.3f, 100, 100),
-    plane(10.0f, 10.0f, 1, 1),
-    torusModel(mat4(1.0f)),
+    plane(15.0f, 15.0f, 1, 1),
+    houseModel(mat4(1.0f)),
+    houseModel2(mat4(1.0f)),
+    lampModel(mat4(1.0f)),
+    wallModel(mat4(1.0f)),
+    treeModel(mat4(1.0f)),
+    treeModel2(mat4(1.0f)),
+    treeModel3(mat4(1.0f)),
     planeModel(mat4(1.0f)),
-    meshModel(mat4(1.0f)),
+    pathModel(mat4(1.0f)),
     skyboxDayTexture(0),
     skyboxNightTexture(0),
-    diffuseTexture(0),
-    normalTexture(0),
+    groundTexture(0),
+    groundNormal(0),
+    houseTexture(0),
+    houseTexture2(0),
+    houseNormal(0),
+    lampTexture(0),
+    pathTexture(0),
+    pathNormal(0),
+    wallTexture(0),
+    wallNormal(0),
+    branchTexture(0),
+    trunkTexture(0),
     FBO(0),
     FBOColourTexture(0),
     FBODepthTexture(0),
@@ -31,7 +46,6 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     timeOfDay(0.0f),
     dayLength(60.0f)    // in seconds
 {
-    mesh = ObjMesh::load("media/pig_triangulated.obj", true);
     skybox = new SkyBox(50.0f);
 }
 
@@ -41,16 +55,53 @@ void SceneBasic_Uniform::initScene(GLFWwindow* winIn) {
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);    // Automatically bind cursor to window & hide pointer
 
     initFBO(1280, 720);
 
-    // Load textures
+    // -=-=- Load models -=-=-
+    // House
+    houseMesh = ObjMesh::load("media/house.obj", false, true);
+
+    // Lamp
+    lampMesh = ObjMesh::load("media/lamp.obj", false);
+
+    // Wall
+    wallMesh = ObjMesh::load("media/wall.obj", false, true);
+
+    // Tree
+    branchMesh = ObjMesh::load("media/branch.obj", false);
+    trunkMesh = ObjMesh::load("media/trunk.obj", false);
+
+    // -=-=- Load textures -=-=-
+    // Skybox
     skyboxDayTexture = Texture::loadHdrCubeMap("media/skybox/day_skybox");
     skyboxNightTexture = Texture::loadHdrCubeMap("media/skybox/night_skybox");
 
-    diffuseTexture = Texture::loadTexture("media/grass.jpg");
-    normalTexture = Texture::loadTexture("media/grass_normal.jpg");
+    // Ground
+    groundTexture = Texture::loadTexture("media/grass.jpg");
+    groundNormal = Texture::loadTexture("media/grass_normal.jpg");
+    pathTexture = Texture::loadTexture("media/path.png");
+    pathNormal = Texture::loadTexture("media/path_normal.png");
+
+    // House
+    houseTexture = Texture::loadTexture("media/house.png");
+    houseTexture2 = Texture::loadTexture("media/house2.png");
+    houseNormal = Texture::loadTexture("media/house_normal.png");
+
+    // Lamp
+    lampTexture = Texture::loadTexture("media/lamp.png");
+
+    // Wall
+    wallTexture = Texture::loadTexture("media/wall.png");
+    wallNormal = Texture::loadTexture("media/wall_normal.png");
+
+    // Tree
+    branchTexture = Texture::loadTexture("media/branch.png");
+    trunkTexture = Texture::loadTexture("media/trunk.jpg");
 
     // Assign textures to shaders
     skyboxProg.use();
@@ -62,19 +113,48 @@ void SceneBasic_Uniform::initScene(GLFWwindow* winIn) {
     prog.setUniform("NormalTex", 1);
 
     // Model transforms 
-    torusModel = rotate(torusModel, radians(-35.0f), vec3(1.0f, 0.0f, 0.0f));
-    torusModel = rotate(torusModel, radians(15.0f), vec3(0.0f, 1.0f, 0.0f));
-    torusModel = translate(torusModel, vec3(0.0f, 1.1f, 0.0f));
+    houseModel = rotate(houseModel, radians(90.0f), vec3(0.0f, 1.0f, 0.0f));
+    houseModel = scale(houseModel, vec3(0.5f));
+    houseModel = translate(houseModel, vec3(0.91f, 0.0f, 8.98f));
 
-    meshModel = rotate(meshModel, radians(90.0f), vec3(0.0f, 1.0f, 0.0f));
-    meshModel = translate(meshModel, vec3(2.0f, 0.0f, 2.0f));
-    meshModel = translate(meshModel, vec3(0.0f, 0.5f, 0.0f));
+    houseModel2 = rotate(houseModel2, radians(180.0f), vec3(0.0f, 1.0f, 0.0f));
+    houseModel2 = scale(houseModel2, vec3(0.35f));
+    houseModel2 = translate(houseModel2, vec3(6.56f, 0.0f, 13.05f));
+
+    lampModel = rotate(lampModel, radians(90.0f), vec3(0.0f, 1.0f, 0.0f));
+    lampModel = translate(lampModel, vec3(1.43f, 0.0f, 0.41f));
+
+    pathModel = translate(planeModel, vec3(0.0f, 0.0001f, 0.0f));
+    pathModel = scale(pathModel, vec3(0.5f));
+
+    wallModel = rotate(wallModel, radians(90.0f), vec3(0.0f, 1.0f, 0.0f));
+    wallModel = scale(wallModel, vec3(0.8f));
+    wallModel = translate(wallModel, vec3(0.0f, -0.13f, 0.0f));
+
+    treeModel = rotate(treeModel, radians(90.0f), vec3(0.0f, 1.0f, 0.0f));
+    treeModel = scale(treeModel, vec3(0.4f));
+    treeModel = translate(treeModel, vec3(-4.13f, 0.0f, -9.92f));
+
+    treeModel2 = translate(treeModel, vec3(-5.71f, 0.0f, 13.58f));
+    treeModel2 = rotate(treeModel2, radians(50.0f), vec3(0.0f, 1.0f, 0.0f));
+    treeModel2 = scale(treeModel2, vec3(0.9f));
+
+    treeModel3 = translate(treeModel, vec3(13.91f, 0.0f, 14.88f));
+    treeModel3 = rotate(treeModel3, radians(130.0f), vec3(0.0f, 1.0f, 0.0f));
+    treeModel3 = scale(treeModel3, vec3(0.7f));
 
     projection = mat4(1.0f);
     view = camera.GetView();
 
     // lights[0] = sun, lights[1] = moon
-    prog.setUniform("numLights", 2);
+    prog.setUniform("numLights", 3);
+
+    // Lamp light
+    const vec3 lampColour = vec3(1.0f, 0.9f, 0.0f) * 0.07f;
+    prog.setUniform("lights[2].Position", lampModel * vec4(0.0f, 1.4f, -0.7f, 1.0f));
+    prog.setUniform("lights[2].Ld", lampColour);
+    prog.setUniform("lights[2].La", lampColour * 0.25f);
+    prog.setUniform("lights[2].Ls", lampColour);
 }
 
 void SceneBasic_Uniform::initFBO(int windowWidth, int windowHeight) {
@@ -160,8 +240,7 @@ void SceneBasic_Uniform::update(float t) {
     timeOfDay += deltaTime;
     if (timeOfDay > dayLength) { timeOfDay -= dayLength; }
 
-    float phase = timeOfDay / dayLength;
-    float sunAngle = phase * 2.0f * pi<float>();
+    float sunAngle = (timeOfDay / dayLength) * 2.0f * pi<float>();
 
     // Sun and moon orbit opposite to each other
     vec3 sunDirection = normalize(vec3(cos(sunAngle), sin(sunAngle), 0.0f));
@@ -175,7 +254,7 @@ void SceneBasic_Uniform::update(float t) {
 
     // Lighting colour
     const vec3 sunColour = vec3(1.0f, 0.95f, 0.7f);
-    const vec3 moonColour = vec3(0.3f, 0.3f, 0.45f);
+    const vec3 moonColour = vec3(0.2f, 0.2f, 0.4f);
 
     // Fog colour
     const vec3 fogDay = vec3(0.7f, 0.8f, 0.9f);
@@ -193,21 +272,21 @@ void SceneBasic_Uniform::update(float t) {
     prog.setUniform("CameraPos", camera.GetPos());
 
     // Pass lighting and fog variables to default shader
-    prog.setUniform("lights[0].Position", vec4((sunDirection * 10.0f), 0.0f));
+    prog.setUniform("lights[0].Position", vec4((sunDirection * 12.0f), 0.0f));
     prog.setUniform("lights[0].Ld", sunColour * sunIntensity);
     prog.setUniform("lights[0].La", (sunColour * 0.2f) * sunIntensity);
     prog.setUniform("lights[0].Ls", sunColour * sunIntensity);
 
-    prog.setUniform("lights[1].Position", vec4((moonDirection * 7.5f), 0.0f));
+    prog.setUniform("lights[1].Position", vec4((moonDirection * 9.0f), 0.0f));
     prog.setUniform("lights[1].Ld", moonColour * moonIntensity);
-    prog.setUniform("lights[1].La", (moonColour * 0.4f) * moonIntensity);
+    prog.setUniform("lights[1].La", (moonColour * 0.25f) * moonIntensity);
     prog.setUniform("lights[1].Ls", (moonColour * 0.55f) * moonIntensity);
 
-    prog.setUniform("Fog.Density", mix(0.03f, 0.08f, moonIntensity));
+    prog.setUniform("Fog.Density", mix(0.04f, 0.12f, moonIntensity));
     prog.setUniform("Fog.Colour", mix(fogDay, fogNight, moonIntensity));
 
     FBOProg.use();
-    FBOProg.setUniform("vignetteStrength", mix(-0.7f, 0.1f, moonIntensity));
+    FBOProg.setUniform("vignetteStrength", mix(-0.7f, 0.05f, moonIntensity));
 
     // -=-=- Handle Player Input -=-=-
     // Close window on escape pressed
@@ -258,48 +337,111 @@ void SceneBasic_Uniform::renderSceneObjects() {
     skyboxProg.setUniform("MVP", skyboxMVP);
 
     skybox->render();
-
-    // -=-=- Plane -=-=-
     glDepthFunc(GL_LESS);
+
+    // -=-=- Grass Plane -=-=-
     prog.use();
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, diffuseTexture);
+    glBindTexture(GL_TEXTURE_2D, groundTexture);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, normalTexture);
+    glBindTexture(GL_TEXTURE_2D, groundNormal);
 
     // Materials
+    prog.setUniform("UVScale", 2.0f);
     prog.setUniform("UseTexture", true);
+    prog.setUniform("UseNormal", true);
     prog.setUniform("Material.Shininess", 120.0f);
-    prog.setUniform("Material.Ka", vec3(0.5f));
-    prog.setUniform("Material.Ks", vec3(0.05f));
+    prog.setUniform("Material.Alpha", 1.0f);
+    prog.setUniform("Material.Ka", vec3(0.6f));
+    prog.setUniform("Material.Ks", vec3(0.1f));
 
     // Render
     setMatrices(planeModel);
     plane.render();
 
-    // -=-=- Mesh -=-=-
-    // Materials
-    prog.setUniform("UseTexture", false);
-    prog.setUniform("Material.Shininess", 90.0f);
-    prog.setUniform("Material.Kd", vec3(0.55f, 0.2f, 0.9f));
-    prog.setUniform("Material.Ka", vec3(0.55f, 0.2f, 0.9f));
-    prog.setUniform("Material.Ks", vec3(0.9f));
+    // -=-=- Path -=-=-=
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, pathTexture);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, pathNormal);
 
-    // Render
-    setMatrices(meshModel);
-    mesh->render();
+    prog.setUniform("UVScale", 1.0f);
+    prog.setUniform("Material.Ks", vec3(0.3f));
 
-    // -=-=- Torus -=-=-
-    // Materials
-    prog.setUniform("Material.Shininess", 100.0f);
-    prog.setUniform("Material.Kd", vec3(0.9f, 0.55f, 0.2f));
-    prog.setUniform("Material.Ka", vec3(0.9f, 0.55f, 0.2f));
-    prog.setUniform("Material.Ks", vec3(0.8f));
+    setMatrices(pathModel);
+    plane.render();
 
-    // Render
-    setMatrices(torusModel);
-    torus.render();
+    // -=-=- Wall -=-=-
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, wallTexture);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, wallNormal);
+
+    prog.setUniform("Material.Shininess", 50.0f);
+    prog.setUniform("Material.Ks", vec3(0.5f));
+
+    setMatrices(wallModel);
+    wallMesh->render();
+
+    // -=-=- Houses -=-=-
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, houseTexture);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, houseNormal);
+
+    prog.setUniform("Material.Shininess", 80.0f);
+    prog.setUniform("Material.Ka", vec3(0.7f));
+    prog.setUniform("Material.Ks", vec3(0.4f));
+
+    // Render house 1
+    setMatrices(houseModel);
+    houseMesh->render();
+
+    // Render house 2
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, houseTexture2);
+    setMatrices(houseModel2);
+    houseMesh->render();
+
+    // -=-=- Tree -=-=-
+    prog.setUniform("Material.Shininess", 140.0f);
+    prog.setUniform("Material.Ka", vec3(0.8f));
+    prog.setUniform("Material.Ks", vec3(0.1f));
+
+    // Branches
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, branchTexture);
+
+    setMatrices(treeModel);
+    branchMesh->render();
+    setMatrices(treeModel2);
+    branchMesh->render();
+    setMatrices(treeModel3);
+    branchMesh->render();
+
+    // Trunk
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, trunkTexture);
+
+    setMatrices(treeModel);
+    trunkMesh->render();
+    setMatrices(treeModel2);
+    trunkMesh->render();
+    setMatrices(treeModel3);
+    trunkMesh->render();
+
+    // -=-=- Lamp -=-=-
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, lampTexture);
+
+    prog.setUniform("UseNormal", false);
+    prog.setUniform("Material.Shininess", 80.0f);
+    prog.setUniform("Material.Ka", vec3(0.7f));
+    prog.setUniform("Material.Ks", vec3(0.4f));
+
+    setMatrices(lampModel);
+    lampMesh->render();
 }
 
 void SceneBasic_Uniform::resize(int w, int h) {

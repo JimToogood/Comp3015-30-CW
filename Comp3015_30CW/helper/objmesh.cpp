@@ -38,6 +38,7 @@ std::unique_ptr<ObjMesh> ObjMesh::load( const char * fileName, bool center, bool
     meshData.load(fileName, mesh->bbox);
 
     // Generate normals
+    meshData.normals.clear();
     meshData.generateNormalsIfNeeded();
 
     // Generate tangents?
@@ -230,6 +231,11 @@ void ObjMesh::ObjMeshData::generateNormalsIfNeeded() {
 }
 
 void ObjMesh::ObjMeshData::generateTangents() {
+    if (texCoords.empty()) {
+        std::cerr << "Cannot generate tangents because mesh has no UVs." << std::endl;
+        return;
+    }
+
     std::vector<vec3> tan1Accum(points.size());
     std::vector<vec3> tan2Accum(points.size());
     tangents.resize(points.size());
@@ -237,6 +243,10 @@ void ObjMesh::ObjMeshData::generateTangents() {
     // Compute the tangent std::vector
     for( GLuint i = 0; i < faces.size(); i += 3 )
     {
+        if (faces[i].tcIdx < 0 || faces[i + 1].tcIdx < 0 || faces[i + 2].tcIdx < 0) {
+            continue;
+        }
+
         const vec3 &p1 = points[faces[i].pIdx];
         const vec3 &p2 = points[faces[i+1].pIdx];
         const vec3 &p3 = points[faces[i+2].pIdx];
@@ -249,7 +259,11 @@ void ObjMesh::ObjMeshData::generateTangents() {
         vec3 q2 = p3 - p1;
         float s1 = tc2.x - tc1.x, s2 = tc3.x - tc1.x;
         float t1 = tc2.y - tc1.y, t2 = tc3.y - tc1.y;
-        float r = 1.0f / (s1 * t2 - s2 * t1);
+
+        float denom = (s1 * t2 - s2 * t1);
+        if (fabs(denom) < 0.00001f) { continue; }
+        float r = 1.0f / denom;
+
         vec3 tan1( (t2*q1.x - t1*q2.x) * r,
                    (t2*q1.y - t1*q2.y) * r,
                    (t2*q1.z - t1*q2.z) * r);
@@ -264,9 +278,13 @@ void ObjMesh::ObjMeshData::generateTangents() {
         tan2Accum[faces[i+2].pIdx] += tan2;
     }
 
-    for( GLuint i = 0; i < points.size(); ++i )
+    for (GLuint i = 0; i < points.size(); ++i)
     {
-        const vec3 &n = normals[i];
+        if (i >= normals.size())
+            continue;
+
+        const vec3& n = normals[i];
+
         vec3 &t1 = tan1Accum[i];
         vec3 &t2 = tan2Accum[i];
 

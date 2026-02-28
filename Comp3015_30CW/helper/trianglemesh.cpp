@@ -70,7 +70,7 @@ void TriangleMesh::initBuffers(
 
     if( tangents != nullptr ) {
         glBindBuffer(GL_ARRAY_BUFFER, tangentBuf);
-        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 0, 0);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
         glEnableVertexAttribArray(3);  // Tangents
     }
 

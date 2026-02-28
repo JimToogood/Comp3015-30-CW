@@ -6,7 +6,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "helper/scene.h"
 #include "helper/glslprogram.h"
-#include "helper/torus.h"
 #include "helper/plane.h"
 #include "helper/objmesh.h"
 #include "helper/texture.h"
@@ -34,19 +33,39 @@ private:
     GLSLProgram FBOProg;
     GLFWwindow* window;
 
-    Torus torus;
     Plane plane;
-    unique_ptr<ObjMesh> mesh;
     SkyBox* skybox;
 
-    mat4 torusModel;
+    unique_ptr<ObjMesh> houseMesh;
+    mat4 houseModel;
+    mat4 houseModel2;
+    unique_ptr<ObjMesh> lampMesh;
+    mat4 lampModel;
+    unique_ptr<ObjMesh> wallMesh;
+    mat4 wallModel;
+    unique_ptr<ObjMesh> branchMesh;
+    unique_ptr<ObjMesh> trunkMesh;
+    mat4 treeModel;
+    mat4 treeModel2;
+    mat4 treeModel3;
     mat4 planeModel;
-    mat4 meshModel;
+    mat4 pathModel;
 
     GLuint skyboxDayTexture;
     GLuint skyboxNightTexture;
-    GLuint diffuseTexture;
-    GLuint normalTexture;
+
+    GLuint groundTexture;
+    GLuint groundNormal;
+    GLuint houseTexture;
+    GLuint houseTexture2;
+    GLuint houseNormal;
+    GLuint lampTexture;
+    GLuint pathTexture;
+    GLuint pathNormal;
+    GLuint wallTexture;
+    GLuint wallNormal;
+    GLuint branchTexture;
+    GLuint trunkTexture;
 
     GLuint FBO;
     GLuint FBOColourTexture;

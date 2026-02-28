@@ -13,6 +13,9 @@ void main() {
     // Sample HDR scene
     vec3 colour = texture(sceneTex, FragUV).rgb;
 
+    // Increase brightness/exposure slightly
+    colour *= 1.3f;
+
     // Calculate distance from centre for vignette
     vec2 centredUV = FragUV - vec2(0.5f);
     float distance = length(centredUV);

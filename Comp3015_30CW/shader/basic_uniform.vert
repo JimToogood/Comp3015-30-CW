@@ -4,7 +4,7 @@
 layout (location = 0) in vec3 VertexPosition;
 layout (location = 1) in vec3 VertexNormal;
 layout (location = 2) in vec2 VertexTexCoord;
-layout (location = 3) in vec3 VertexTangent;
+layout (location = 3) in vec4 VertexTangent;
 
 // Outputs to frag
 out vec3 FragPos;
@@ -25,9 +25,9 @@ void main() {
 
     // Calculate TBN for normal mapping
     vec3 N = normalize(NormalMatrix * VertexNormal);
-    vec3 T = normalize(NormalMatrix * VertexTangent);
+    vec3 T = normalize(NormalMatrix * VertexTangent.xyz);
     T = normalize(T - dot(T, N) * N);
-    vec3 B = normalize(cross(N, T));
+    vec3 B = cross(N, T) * VertexTangent.w;
 
     TBN = mat3(T, B, N);
 
