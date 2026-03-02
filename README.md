@@ -77,6 +77,15 @@ Comp3015_30CW/
 
 ---
 
+## Use of AI description
+ChatGPT (OpenAI GPT-5) was used during development for:  
+- Debugging and code assist  
+- Repo and readme report formatting  
+
+# Note for markers: For AI prompt and transcript please see "Student Declaration of AI Tool use in this Assessment.pdf" submitted to the DLE as part of the Project.zip
+
+---
+
 ## Visual Studio and Operating System Versions
 The Visual Studio and Operating System versions used to test/write the code locally were:  
 - Visual Studio 2022 Version 17.14.19  
