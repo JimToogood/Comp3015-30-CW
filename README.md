@@ -73,7 +73,16 @@ Comp3015_30CW/
 ---
 
 ## Youtube link
-(link here)  
+hHps://youtu.be/Hh6pZewmfyU  
+
+---
+
+## Use of AI description
+ChatGPT (OpenAI GPT-5) was used during development for:  
+- Debugging and code assist  
+- Repo and readme report formatting  
+
+# Note for markers: For AI prompt and transcript please see "Student Declaration of AI Tool use in this Assessment.pdf" submitted to the DLE as part of the Project.zip
 
 ---
 

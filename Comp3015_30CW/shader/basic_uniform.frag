@@ -82,7 +82,7 @@ void main() {
         if (texSample.a < 1.0f) {
             alpha = texSample.a;
         } else {
-            alpha =  Material.Alpha;
+            alpha = Material.Alpha;
         }
     } else {
         baseColour = Material.Kd;
