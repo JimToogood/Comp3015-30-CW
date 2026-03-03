@@ -73,7 +73,7 @@ Comp3015_30CW/
 ---
 
 ## Youtube link
-hHps://youtu.be/Hh6pZewmfyU  
+https://youtu.be/Hh6pZewmfyU  
 
 ---
 
